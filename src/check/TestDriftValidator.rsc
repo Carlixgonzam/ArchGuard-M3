@@ -5,6 +5,7 @@ import lang::arch::AST;
 import extract::M3Extractor;
 import List;
 import Set;
+import Relation;
 
 ExtractionResult mockResult(DependencyGraph invocations) =
   extractionResult(
@@ -15,14 +16,8 @@ ExtractionResult mockResult(DependencyGraph invocations) =
     {}
   );
 
-ExtractionResult mockFullResult(DependencyGraph invocations, DependencyGraph typeDeps) =
-  extractionResult(
-    domain(invocations) + range(invocations) + domain(typeDeps) + range(typeDeps),
-    invocations,
-    typeDeps,
-    {},
-    {}
-  );
+ExtractionResult mockFullResult(set[str] services, DependencyGraph invocations, DependencyGraph typeDeps) =
+  extractionResult(services, invocations, typeDeps, {}, {});
 
 test bool permitsAllowedNoDrift() {
   Architecture arch = architecture([permits("Orders", ["Payments", "Inventory"])]);
@@ -125,9 +120,9 @@ test bool mixedRulesMultipleViolations() {
   ]);
   ExtractionResult actual = mockResult({<"orders", "payments">, <"orders", "analytics">});
   ValidationReport r = validate(arch, actual);
-  bool hasForbidden = any(f <- r.findings, f.violation == forbiddenDependency("Orders", "Analytics"));
-  bool hasMissing = any(f <- r.findings, f.violation == missingDependency("Orders", "Cache"));
-  return hasForbidden && hasMissing;
+  set[Violation] violations = {v | <Violation v, _> <- r.findings};
+  return forbiddenDependency("Orders", "Analytics") in violations
+      && missingDependency("Orders", "Cache") in violations;
 }
 
 test bool debtScoreCritical() {
@@ -175,17 +170,17 @@ test bool validateFullIncludesFilteredTypeDeps() {
   Architecture arch = architecture([forbids("Orders", ["Inventory"])]);
   DependencyGraph inv = {<"orders", "payments">};
   DependencyGraph typeDeps = {<"orders", "inventory">, <"orders", "String">};
-  ExtractionResult actual = mockFullResult(inv, typeDeps);
+  ExtractionResult actual = mockFullResult({"orders", "payments", "inventory"}, inv, typeDeps);
   ValidationReport r = validateFull(arch, actual);
-  bool hasForbidden = any(f <- r.findings, f.violation == forbiddenDependency("Orders", "Inventory"));
-  return hasForbidden;
+  set[Violation] violations = {v | <Violation v, _> <- r.findings};
+  return forbiddenDependency("Orders", "Inventory") in violations;
 }
 
 test bool validateFullFiltersNonServices() {
   Architecture arch = architecture([permits("Orders", ["Payments"])]);
   DependencyGraph inv = {<"orders", "payments">};
   DependencyGraph typeDeps = {<"orders", "String">};
-  ExtractionResult actual = mockFullResult(inv, typeDeps);
+  ExtractionResult actual = mockFullResult({"orders", "payments"}, inv, typeDeps);
   ValidationReport r = validateFull(arch, actual);
   return r.findings == [];
 }
