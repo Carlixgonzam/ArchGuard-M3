@@ -55,3 +55,7 @@ Architecture loadArchitecture(loc dslFile) =
 
 Architecture loadArchitectureFromString(str content) =
   buildAST(parseArchitecture(content));
+
+void exportFullReport(ValidationReport report, loc outputTex) {
+  writeFile(outputTex, generateFullLatex(report));
+}

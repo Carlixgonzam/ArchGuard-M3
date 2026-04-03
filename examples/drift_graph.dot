@@ -1,0 +1,23 @@
+digraph ArchGuard {
+  rankdir=LR;
+  node [shape=ellipse, style=filled, fillcolor=lightblue, fontname=Helvetica];
+  edge [fontname=Helvetica, fontsize=10];
+
+  "database" [label="database"];
+  "inventory" [label="inventory"];
+  "orders" [label="orders"];
+  "payments" [label="payments"];
+
+  "orders" -> "payments" [color=green, penwidth=2.0, label="permitted"];
+  "orders" -> "inventory" [color=green, penwidth=2.0, label="permitted"];
+  "payments" -> "database" [color=grey, style=dashed, label="missing"];
+
+  subgraph cluster_legend {
+    label="Legend";
+    style=dashed;
+    fontname=Helvetica;
+    leg_g [label="Permitted", shape=box, fillcolor=green, style=filled];
+    leg_r [label="Forbidden/Unpermitted", shape=box, fillcolor=red, style=filled, fontcolor=white];
+    leg_d [label="Missing (dependsOn)", shape=box, fillcolor=grey, style="filled,dashed"];
+  }
+}
