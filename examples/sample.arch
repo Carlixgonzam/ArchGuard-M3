@@ -1,0 +1,5 @@
+service "Orders" permits {"Payments", "Inventory"}
+service "Orders" forbids {"Analytics"}
+service "Payments" dependsOn {"Database"}
+service "Inventory" permits {"Database"}
+service "Payments" forbids {"Orders"}
