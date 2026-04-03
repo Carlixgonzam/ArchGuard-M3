@@ -1,0 +1,6 @@
+service "Gateway" permits {"Orders", "Auth"}
+service "Orders" permits {"Payments", "Inventory"}
+service "Payments" permits {"Ledger"}
+service "Inventory" permits {"Warehouse"}
+service "Warehouse" permits {"Orders"}
+service "Gateway" forbids {"Payments"}
