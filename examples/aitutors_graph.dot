@@ -1,0 +1,24 @@
+digraph ArchGuard {
+  rankdir=LR;
+  node [shape=ellipse, style=filled, fillcolor=lightblue, fontname=Helvetica];
+  edge [fontname=Helvetica, fontsize=10];
+
+  "entities" [label="entities"];
+  "exceptions" [label="exceptions"];
+  "repositories" [label="repositories"];
+  "services" [label="services"];
+
+  "repositories" -> "entities" [color=green, penwidth=2.0, label="permitted"];
+  "services" -> "entities" [color=green, penwidth=2.0, label="permitted"];
+  "services" -> "exceptions" [color=green, penwidth=2.0, label="permitted"];
+  "services" -> "repositories" [color=green, penwidth=2.0, label="permitted"];
+
+  subgraph cluster_legend {
+    label="Legend";
+    style=dashed;
+    fontname=Helvetica;
+    leg_g [label="Permitted", shape=box, fillcolor=green, style=filled];
+    leg_r [label="Forbidden/Unpermitted", shape=box, fillcolor=red, style=filled, fontcolor=white];
+    leg_d [label="Missing (dependsOn)", shape=box, fillcolor=grey, style="filled,dashed"];
+  }
+}

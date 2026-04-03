@@ -1,0 +1,8 @@
+service "controllers" permits {"services", "dto", "entities", "exceptions"}
+service "services" permits {"repositories", "entities", "exceptions"}
+service "repositories" permits {"entities"}
+service "dto" permits {"entities"}
+service "entities" permits {"entities"}
+service "controllers" forbids {"repositories"}
+service "repositories" forbids {"controllers", "services"}
+service "entities" forbids {"controllers", "services", "repositories"}
