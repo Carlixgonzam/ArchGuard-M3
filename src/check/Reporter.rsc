@@ -53,7 +53,10 @@ str formatExtractionSummary(ExtractionResult result) =
   + "Cross-service invocations: <size(result.invocations)>\n"
   + "Cross-service type deps: <size(result.typeDependencies)>\n"
   + "HTTP endpoints: <size(result.endpoints)>\n"
-  + "DB entities: <size(result.dbEntities)>\n";
+  + "DB entities: <size(result.dbEntities)>\n"
+  + "Feign clients: <size(result.feignClients)>\n"
+  + "REST clients: <size(result.restClients)>\n"
+  + "Repositories: <size(result.repositories)>\n";
 
 void printReport(ValidationReport report) {
   println(formatReport(report));

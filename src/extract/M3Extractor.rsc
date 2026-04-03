@@ -6,6 +6,7 @@ import IO;
 import Set;
 import String;
 import List;
+import Relation;
 
 alias ServiceName = str;
 alias DependencyGraph = rel[ServiceName source, ServiceName target];
@@ -15,7 +16,10 @@ data ExtractionResult = extractionResult(
   DependencyGraph invocations,
   DependencyGraph typeDependencies,
   rel[ServiceName, str] endpoints,
-  rel[ServiceName, str] dbEntities
+  rel[ServiceName, str] dbEntities,
+  rel[ServiceName, str] feignClients = {},
+  rel[ServiceName, str] restClients = {},
+  rel[ServiceName, str] repositories = {}
 );
 
 M3 buildModel(loc projectDir) = createM3FromDirectory(projectDir);
@@ -29,7 +33,10 @@ ExtractionResult extractFromModel(M3 model, int depth) =
     extractInvocations(model, depth),
     extractTypeDependencies(model, depth),
     extractEndpoints(model, depth),
-    extractDbEntities(model, depth)
+    extractDbEntities(model, depth),
+    feignClients = extractFeignClients(model, depth),
+    restClients = extractRestClients(model, depth),
+    repositories = extractRepositories(model, depth)
   );
 
 set[ServiceName] discoverServices(M3 model, int depth) =
@@ -69,6 +76,29 @@ rel[ServiceName, str] extractDbEntities(M3 model, int depth) =
   {<segmentAt(decl.path, depth), decl.path> |
     <decl, ann> <- model.annotations,
     /Entity|Repository|Table/ := ann.path};
+
+rel[ServiceName, str] extractFeignClients(M3 model, int depth) =
+  {<segmentAt(decl.path, depth), decl.path> |
+    <decl, ann> <- model.annotations,
+    /FeignClient/ := ann.path,
+    segmentAt(decl.path, depth) != ""};
+
+rel[ServiceName, str] extractRestClients(M3 model, int depth) =
+  {<segmentAt(caller.path, depth), callee.path> |
+    <caller, callee> <- model.methodInvocation,
+    /RestTemplate|WebClient|HttpClient/ := callee.path,
+    segmentAt(caller.path, depth) != ""};
+
+rel[ServiceName, str] extractRepositories(M3 model, int depth) =
+  {<segmentAt(decl.path, depth), decl.path> |
+    <decl, ann> <- model.annotations,
+    /Repository|JpaRepository|CrudRepository/ := ann.path,
+    segmentAt(decl.path, depth) != ""};
+
+DependencyGraph mergeAllDependencies(ExtractionResult result) =
+  result.invocations +
+  {<s, t> | <s, t> <- result.typeDependencies,
+            s in result.services, t in result.services};
 
 str segmentAt(str path, int index) {
   list[str] parts = [p | p <- split("/", path), p != ""];

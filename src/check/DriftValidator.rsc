@@ -27,36 +27,49 @@ ValidationReport validate(Architecture arch, ExtractionResult actual) =
   validateGraph(arch, actual.invocations);
 
 ValidationReport validateFull(Architecture arch, ExtractionResult actual) =
-  validateGraph(arch, actual.invocations +
-    {<s, t> | <s, t> <- actual.typeDependencies,
-              s in actual.services, t in actual.services});
+  validateGraph(arch, mergeAllDependencies(actual));
 
 ValidationReport validateGraph(Architecture arch, DependencyGraph actualDeps) {
   list[tuple[Violation, Severity]] findings =
-    checkPermits(arch, actualDeps) +
     checkForbids(arch, actualDeps) +
+    checkPermits(arch, actualDeps) +
     checkDependsOn(arch, actualDeps) +
     checkCycles(actualDeps);
   return validationReport(findings, computeDebt(findings));
 }
 
-list[tuple[Violation, Severity]] checkPermits(Architecture arch, DependencyGraph actual) =
-  [<unpermittedDependency(name, target), warning()> |
-    permits(str name, list[str] allowed) <- arch.decls,
-    str target <- actual[normalize(name)],
-    normalize(target) notin {normalize(a) | a <- allowed}];
+list[tuple[Violation, Severity]] checkForbids(Architecture arch, DependencyGraph actual) {
+  list[tuple[Violation, Severity]] results = [];
+  for (forbids(str name, list[str] forbidden) <- arch.decls) {
+    set[str] actualNorm = {normalize(t) | t <- actual[normalize(name)]};
+    set[str] forbiddenNorm = {normalize(f) | f <- forbidden};
+    set[str] delta = actualNorm & forbiddenNorm;
+    results += [<forbiddenDependency(name, f), critical()> | f <- forbidden, normalize(f) in delta];
+  }
+  return results;
+}
 
-list[tuple[Violation, Severity]] checkForbids(Architecture arch, DependencyGraph actual) =
-  [<forbiddenDependency(name, f), critical()> |
-    forbids(str name, list[str] forbidden) <- arch.decls,
-    str f <- forbidden,
-    normalize(f) in {normalize(t) | t <- actual[normalize(name)]}];
+list[tuple[Violation, Severity]] checkPermits(Architecture arch, DependencyGraph actual) {
+  list[tuple[Violation, Severity]] results = [];
+  for (permits(str name, list[str] allowed) <- arch.decls) {
+    set[str] actualTargets = actual[normalize(name)];
+    set[str] allowedNorm = {normalize(a) | a <- allowed};
+    set[str] delta = {t | t <- actualTargets, normalize(t) notin allowedNorm};
+    results += [<unpermittedDependency(name, t), warning()> | t <- delta];
+  }
+  return results;
+}
 
-list[tuple[Violation, Severity]] checkDependsOn(Architecture arch, DependencyGraph actual) =
-  [<missingDependency(name, expected), info()> |
-    dependsOn(str name, list[str] deps) <- arch.decls,
-    str expected <- deps,
-    normalize(expected) notin {normalize(t) | t <- actual[normalize(name)]}];
+list[tuple[Violation, Severity]] checkDependsOn(Architecture arch, DependencyGraph actual) {
+  list[tuple[Violation, Severity]] results = [];
+  for (dependsOn(str name, list[str] deps) <- arch.decls) {
+    set[str] actualNorm = {normalize(t) | t <- actual[normalize(name)]};
+    set[str] expectedNorm = {normalize(e) | e <- deps};
+    set[str] delta = expectedNorm - actualNorm;
+    results += [<missingDependency(name, e), info()> | e <- deps, normalize(e) in delta];
+  }
+  return results;
+}
 
 list[tuple[Violation, Severity]] checkCycles(DependencyGraph graph) {
   if (isEmpty(graph)) return [];
