@@ -222,4 +222,4 @@ The generated `.tex` file produces a formatted PDF with:
 * **`DriftVisualizer`** — `renderDriftGraph(report)` / `renderDriftGraph(report, graph)`. Interactive Swing-based visualization (requires Eclipse IDE or Swing-capable Rascal shell).
 
 ---
-Developed using Rascal by carlix
+Developed using Rascal by carlix with love
